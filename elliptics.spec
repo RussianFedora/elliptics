@@ -29,7 +29,7 @@ object storage.
 
 
 %package devel
-Summary: Development files for %{name}
+Summary:	Development files for %{name}
 Requires:	%{name}%{?_isa} = %{version}-%{release}
 
 
