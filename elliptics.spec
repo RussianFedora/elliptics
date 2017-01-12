@@ -9,17 +9,17 @@ Source0:	https://github.com/reverbrain/elliptics/archive/v%{version}.tar.gz#/%{n
 Patch0:		elliptics-2.26.11.0-gcc6.patch
 Patch1:		elliptics-2.26.11.0-interpreter-fix.patch
 
+BuildRequires:	blackhole-devel = 0.2.4
 BuildRequires:	boost-devel
 BuildRequires:	cmake
+BuildRequires:	compat-msgpack-devel
 BuildRequires:	eblob-devel >= 0.23.11
 BuildRequires:	handystats-devel >= 1.10.2
 BuildRequires:	libev-devel
 BuildRequires:	libtool-ltdl-devel
-BuildRequires:	compat-msgpack-devel
 BuildRequires:	python-devel
 BuildRequires:	python-msgpack
 BuildRequires:	python-virtualenv
-BuildRequires:	blackhole-devel = 0.2.4
 
 ExclusiveArch:	x86_64
 
