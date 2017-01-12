@@ -1,0 +1,589 @@
+From 76f7ccf7e31f099ea6663e06d2462ddb24b8af5e Mon Sep 17 00:00:00 2001
+From: Evgeniy Polyakov <zbr@ioremap.net>
+Date: Sun, 18 Dec 2016 20:53:19 +0300
+Subject: [PATCH 1/3] Updated elliptics to compile with gcc6 on fedora25
+ (updated boost and msgpack)
+
+---
+ elliptics-bf.spec        |  7 ++++++-
+ tests/api_test.cpp       |  5 ++++-
+ tests/backends_test.cpp  |  5 ++++-
+ tests/cache_test.cpp     |  5 ++++-
+ tests/capped_test.cpp    |  6 +++++-
+ tests/crypto_test.cpp    |  5 ++++-
+ tests/locks_test.cpp     |  5 ++++-
+ tests/reconnect_test.cpp |  5 ++++-
+ tests/run_tests.py       |  2 +-
+ tests/server_send.cpp    |  5 ++++-
+ tests/srw_test.cpp       | 11 +++++++----
+ tests/stats_test.cpp     |  5 ++++-
+ tests/test.cpp           |  4 +++-
+ tests/test_base.hpp      |  8 ++++++++
+ tests/weights_test.cpp   |  5 ++++-
+ 15 files changed, 66 insertions(+), 17 deletions(-)
+
+diff --git a/elliptics-bf.spec b/elliptics-bf.spec
+index 6e83b8a..cca73d4 100644
+--- a/elliptics-bf.spec
++++ b/elliptics-bf.spec
+@@ -18,8 +18,13 @@ BuildRequires:  cocaine-framework-native-devel >= 0.11.0.0
+ BuildRequires:	eblob-devel >= 0.23.11
+ BuildRequires:  libblackhole-devel = 0.2.4
+ BuildRequires:	libev-devel libtool-ltdl-devel
+-BuildRequires:	cmake msgpack-devel python-msgpack
++BuildRequires:	cmake python-msgpack
+ BuildRequires:	handystats >= 1.10.2
++%if 0%{?fedora} >= 24
++BuildRequires: compat-msgpack-devel
++%else
++BuildRequires: msgpack-devel
++%endif
+ 
+ %define boost_ver %{nil}
+ 
+diff --git a/tests/api_test.cpp b/tests/api_test.cpp
+index ce77eab..a32047b 100644
+--- a/tests/api_test.cpp
++++ b/tests/api_test.cpp
+@@ -16,6 +16,9 @@
+ #include "test_base.hpp"
+ #include <algorithm>
+ 
++#include <boost/bind/bind.hpp>
++using namespace boost::placeholders;
++
+ #define BOOST_TEST_NO_MAIN
+ #include <boost/test/included/unit_test.hpp>
+ 
+@@ -148,7 +151,7 @@ boost::unit_test::test_suite *register_tests(int argc, char *argv[])
+ 		return NULL;
+ 	}
+ 
+-	test_suite *suite = new test_suite("Local Test Suite");
++	test_suite *suite = new ELLIPTICS_MAKE_TEST_SUITE("Local Test Suite");
+ 
+ 	configure_nodes(remotes, path);
+ 
+diff --git a/tests/backends_test.cpp b/tests/backends_test.cpp
+index f42d2e6..43b84cb 100644
+--- a/tests/backends_test.cpp
++++ b/tests/backends_test.cpp
+@@ -17,6 +17,9 @@
+ #include "../library/elliptics.h"
+ #include <algorithm>
+ 
++#include <boost/bind/bind.hpp>
++using namespace boost::placeholders;
++
+ #define BOOST_TEST_NO_MAIN
+ #include <boost/test/included/unit_test.hpp>
+ 
+@@ -487,7 +490,7 @@ boost::unit_test::test_suite *register_tests(int argc, char *argv[])
+ 		return NULL;
+ 	}
+ 
+-	test_suite *suite = new test_suite("Local Test Suite");
++	test_suite *suite = new ELLIPTICS_MAKE_TEST_SUITE("Local Test Suite");
+ 
+ 	configure_nodes(path);
+ 
+diff --git a/tests/cache_test.cpp b/tests/cache_test.cpp
+index 7f8ff71..e2e8654 100644
+--- a/tests/cache_test.cpp
++++ b/tests/cache_test.cpp
+@@ -20,6 +20,9 @@
+ #include <list>
+ #include <stdexcept>
+ 
++#include <boost/bind/bind.hpp>
++using namespace boost::placeholders;
++
+ #define BOOST_TEST_NO_MAIN
+ #include <boost/test/included/unit_test.hpp>
+ 
+@@ -325,7 +328,7 @@ boost::unit_test::test_suite *register_tests(int argc, char *argv[])
+ 		return NULL;
+ 	}
+ 
+-	test_suite *suite = new test_suite("Local Test Suite");
++	test_suite *suite = new ELLIPTICS_MAKE_TEST_SUITE("Local Test Suite");
+ 
+ 	configure_nodes(path);
+ 
+diff --git a/tests/capped_test.cpp b/tests/capped_test.cpp
+index 1896a85..ee3ae4f 100644
+--- a/tests/capped_test.cpp
++++ b/tests/capped_test.cpp
+@@ -19,8 +19,12 @@
+ #include <algorithm>
+ #include <deque>
+ 
++#include <boost/bind/bind.hpp>
++using namespace boost::placeholders;
++
+ #define BOOST_TEST_NO_MAIN
+ #include <boost/test/included/unit_test.hpp>
++#include <boost/test/results_reporter.hpp>
+ 
+ #include <boost/program_options.hpp>
+ 
+@@ -135,7 +139,7 @@ boost::unit_test::test_suite *register_tests(int argc, char *argv[])
+ 		return NULL;
+ 	}
+ 
+-	test_suite *suite = new test_suite("Local Test Suite");
++	test_suite *suite = new ELLIPTICS_MAKE_TEST_SUITE("Local Test Suite");
+ 
+ 	configure_nodes(remotes, path);
+ 
+diff --git a/tests/crypto_test.cpp b/tests/crypto_test.cpp
+index 66764ae..c87d0c9 100644
+--- a/tests/crypto_test.cpp
++++ b/tests/crypto_test.cpp
+@@ -18,6 +18,9 @@
+ #include "test_base.hpp"
+ #include "../library/crypto/sha512.h"
+ 
++#include <boost/bind/bind.hpp>
++using namespace boost::placeholders;
++
+ #define BOOST_TEST_NO_MAIN
+ #include <boost/test/included/unit_test.hpp>
+ 
+@@ -124,7 +127,7 @@ boost::unit_test::test_suite *register_tests(int argc, char *argv[])
+ 		return nullptr;
+ 	}
+ 
+-	test_suite *suite = new test_suite("crypto library test suite");
++	test_suite *suite = new ELLIPTICS_MAKE_TEST_SUITE("crypto library test suite");
+ 	register_tests(suite);
+ 
+ 	return suite;
+diff --git a/tests/locks_test.cpp b/tests/locks_test.cpp
+index 67d704d..1e84008 100644
+--- a/tests/locks_test.cpp
++++ b/tests/locks_test.cpp
+@@ -17,6 +17,9 @@
+ #include "../library/elliptics.h"
+ #include <algorithm>
+ 
++#include <boost/bind/bind.hpp>
++using namespace boost::placeholders;
++
+ #define BOOST_TEST_NO_MAIN
+ #include <boost/test/included/unit_test.hpp>
+ 
+@@ -198,7 +201,7 @@ boost::unit_test::test_suite *register_tests(int argc, char *argv[])
+ 		return NULL;
+ 	}
+ 
+-	test_suite *suite = new test_suite("Local Test Suite");
++	test_suite *suite = new ELLIPTICS_MAKE_TEST_SUITE("Local Test Suite");
+ 
+ 	configure_nodes(path);
+ 
+diff --git a/tests/reconnect_test.cpp b/tests/reconnect_test.cpp
+index e04d427..9037518 100644
+--- a/tests/reconnect_test.cpp
++++ b/tests/reconnect_test.cpp
+@@ -17,6 +17,9 @@
+ #include "test_session.hpp"
+ #include "../library/elliptics.h"
+ 
++#include <boost/bind/bind.hpp>
++using namespace boost::placeholders;
++
+ #define BOOST_TEST_NO_MAIN
+ #include <boost/test/included/unit_test.hpp>
+ 
+@@ -152,7 +155,7 @@ boost::unit_test::test_suite *register_tests(int argc, char *argv[])
+ 		return NULL;
+ 	}
+ 
+-	test_suite *suite = new test_suite("Local Test Suite");
++	test_suite *suite = new ELLIPTICS_MAKE_TEST_SUITE("Local Test Suite");
+ 
+ 	configure_nodes(path);
+ 
+diff --git a/tests/run_tests.py b/tests/run_tests.py
+index ec54504..c6003d1 100755
+--- a/tests/run_tests.py
++++ b/tests/run_tests.py
+@@ -9,7 +9,7 @@
+ 
+ def run_test(path, test):
+     os.mkdir(path)
+-    p = subprocess.Popen([test, '--path', path], stdout=sys.stdout,
++    p = subprocess.Popen([test, '--', '--path', path], stdout=sys.stdout,
+                          stderr=subprocess.STDOUT, cwd=path)
+     p.communicate()
+ 
+diff --git a/tests/server_send.cpp b/tests/server_send.cpp
+index 174662e..d4befb5 100644
+--- a/tests/server_send.cpp
++++ b/tests/server_send.cpp
+@@ -17,6 +17,9 @@
+ #include "../library/elliptics.h"
+ #include <algorithm>
+ 
++#include <boost/bind/bind.hpp>
++using namespace boost::placeholders;
++
+ #define BOOST_TEST_NO_MAIN
+ #include <boost/test/included/unit_test.hpp>
+ 
+@@ -469,7 +472,7 @@ static boost::unit_test::test_suite *ssend_setup_tests(int argc, char *argv[])
+ 		return NULL;
+ 	}
+ 
+-	test_suite *suite = new test_suite("Local Test Suite");
++	test_suite *suite = new ELLIPTICS_MAKE_TEST_SUITE("Local Test Suite");
+ 
+ 	ssend_configure(path);
+ 	ssend_register_tests(suite, *ssend_servers->node);
+diff --git a/tests/srw_test.cpp b/tests/srw_test.cpp
+index 2daeec2..587d28e 100644
+--- a/tests/srw_test.cpp
++++ b/tests/srw_test.cpp
+@@ -17,13 +17,16 @@
+ #include "test_base.hpp"
+ #include <algorithm>
+ 
++#include <boost/program_options.hpp>
++
++#include <boost/bind/bind.hpp>
++using namespace boost::placeholders;
++
++using namespace boost::unit_test;
+ #define BOOST_TEST_NO_MAIN
+ #include <boost/test/included/unit_test.hpp>
+ 
+-#include <boost/program_options.hpp>
+-
+ using namespace ioremap::elliptics;
+-using namespace boost::unit_test;
+ 
+ namespace tests {
+ 
+@@ -224,7 +227,7 @@ boost::unit_test::test_suite *register_tests(int argc, char *argv[])
+ 		return NULL;
+ 	}
+ 
+-	test_suite *suite = new test_suite("Local Test Suite");
++	test_suite *suite = new ELLIPTICS_MAKE_TEST_SUITE("Local Test Suite");
+ 
+ 	configure_nodes(remotes, path);
+ 
+diff --git a/tests/stats_test.cpp b/tests/stats_test.cpp
+index d2276bb..337e81c 100644
+--- a/tests/stats_test.cpp
++++ b/tests/stats_test.cpp
+@@ -17,6 +17,9 @@
+ #include "../monitor/event_stats.hpp"
+ #include "../monitor/monitor.hpp"
+ 
++#include <boost/bind/bind.hpp>
++using namespace boost::placeholders;
++
+ #define BOOST_TEST_NO_MAIN
+ #include <boost/test/included/unit_test.hpp>
+ 
+@@ -474,7 +477,7 @@ boost::unit_test::test_suite *register_tests(int argc, char *argv[])
+ 
+ 	configure_nodes(path);
+ 
+-	test_suite *suite = new test_suite("event statistics test suite");
++	test_suite *suite = new ELLIPTICS_MAKE_TEST_SUITE("event statistics test suite");
+ 	register_tests(suite);
+ 
+ 	return suite;
+diff --git a/tests/test.cpp b/tests/test.cpp
+index a067786..276b86c 100644
+--- a/tests/test.cpp
++++ b/tests/test.cpp
+@@ -17,6 +17,8 @@
+ #include "test_base.hpp"
+ #include <algorithm>
+ 
++#include <boost/bind/bind.hpp>
++using namespace boost::placeholders;
+ #define BOOST_TEST_NO_MAIN
+ #include <boost/test/included/unit_test.hpp>
+ 
+@@ -1568,7 +1570,7 @@ boost::unit_test::test_suite *register_tests(int argc, char *argv[])
+ 		return NULL;
+ 	}
+ 
+-	test_suite *suite = new test_suite("Local Test Suite");
++	test_suite *suite = new ELLIPTICS_MAKE_TEST_SUITE("Local Test Suite");
+ 
+ 	configure_nodes(remotes, path);
+ 
+diff --git a/tests/test_base.hpp b/tests/test_base.hpp
+index e4da523..73d2a07 100644
+--- a/tests/test_base.hpp
++++ b/tests/test_base.hpp
+@@ -89,8 +89,16 @@ std::function<void ()> make(const char *, Method method, Args... args)
+ 	return std::bind(method, std::forward<Args>(args)...);
+ }
+ 
++#if BOOST_VERSION > 105800
++#define ELLIPTICS_MAKE_TEST(...) \
++	boost::unit_test::make_test_case(tests::make(BOOST_STRINGIZE((__VA_ARGS__)), __VA_ARGS__), \
++			BOOST_TEST_STRINGIZE((__VA_ARGS__)), __FILE__, __LINE__)
++#define ELLIPTICS_MAKE_TEST_SUITE(name) boost::unit_test::test_suite((name), __FILE__, __LINE__)
++#else
+ #define ELLIPTICS_MAKE_TEST(...) \
+ 	boost::unit_test::make_test_case(tests::make(BOOST_STRINGIZE((__VA_ARGS__)), __VA_ARGS__), BOOST_TEST_STRINGIZE((__VA_ARGS__)))
++#define ELLIPTICS_MAKE_TEST_SUITE(name) boost::unit_test::test_suite((name))
++#endif
+ 
+ #ifdef USE_MASTER_SUITE
+ #  define ELLIPTICS_TEST_CASE(M, C...) do { framework::master_test_suite().add(ELLIPTICS_MAKE_TEST(M, ##C )); } while (false)
+diff --git a/tests/weights_test.cpp b/tests/weights_test.cpp
+index 3c6fda3..0443a7e 100644
+--- a/tests/weights_test.cpp
++++ b/tests/weights_test.cpp
+@@ -17,6 +17,9 @@
+ #include "../library/elliptics.h"
+ #include <algorithm>
+ 
++#include <boost/bind/bind.hpp>
++using namespace boost::placeholders;
++
+ #define BOOST_TEST_NO_MAIN
+ #include <boost/test/included/unit_test.hpp>
+ 
+@@ -164,7 +167,7 @@ boost::unit_test::test_suite *register_tests(int argc, char *argv[])
+ 		return NULL;
+ 	}
+ 
+-	test_suite *suite = new test_suite("Local Test Suite");
++	test_suite *suite = new ELLIPTICS_MAKE_TEST_SUITE("Local Test Suite");
+ 
+ 	configure_nodes(path);
+ 
+
+From 5bb2ba9c75419a2984cdb7ed09c0595981a7d3b9 Mon Sep 17 00:00:00 2001
+From: Evgeniy Polyakov <zbr@ioremap.net>
+Date: Sun, 18 Dec 2016 21:21:08 +0300
+Subject: [PATCH 2/3] test: only include placeholders for newer boost
+
+---
+ tests/api_test.cpp       | 3 ---
+ tests/backends_test.cpp  | 3 ---
+ tests/cache_test.cpp     | 3 ---
+ tests/capped_test.cpp    | 3 ---
+ tests/crypto_test.cpp    | 3 ---
+ tests/locks_test.cpp     | 3 ---
+ tests/reconnect_test.cpp | 3 ---
+ tests/server_send.cpp    | 3 ---
+ tests/srw_test.cpp       | 8 ++------
+ tests/stats_test.cpp     | 3 ---
+ tests/test.cpp           | 2 --
+ tests/test_base.hpp      | 7 +++++++
+ 12 files changed, 9 insertions(+), 35 deletions(-)
+
+diff --git a/tests/api_test.cpp b/tests/api_test.cpp
+index a32047b..fd6df19 100644
+--- a/tests/api_test.cpp
++++ b/tests/api_test.cpp
+@@ -16,9 +16,6 @@
+ #include "test_base.hpp"
+ #include <algorithm>
+ 
+-#include <boost/bind/bind.hpp>
+-using namespace boost::placeholders;
+-
+ #define BOOST_TEST_NO_MAIN
+ #include <boost/test/included/unit_test.hpp>
+ 
+diff --git a/tests/backends_test.cpp b/tests/backends_test.cpp
+index 43b84cb..026baf0 100644
+--- a/tests/backends_test.cpp
++++ b/tests/backends_test.cpp
+@@ -17,9 +17,6 @@
+ #include "../library/elliptics.h"
+ #include <algorithm>
+ 
+-#include <boost/bind/bind.hpp>
+-using namespace boost::placeholders;
+-
+ #define BOOST_TEST_NO_MAIN
+ #include <boost/test/included/unit_test.hpp>
+ 
+diff --git a/tests/cache_test.cpp b/tests/cache_test.cpp
+index e2e8654..1513509 100644
+--- a/tests/cache_test.cpp
++++ b/tests/cache_test.cpp
+@@ -20,9 +20,6 @@
+ #include <list>
+ #include <stdexcept>
+ 
+-#include <boost/bind/bind.hpp>
+-using namespace boost::placeholders;
+-
+ #define BOOST_TEST_NO_MAIN
+ #include <boost/test/included/unit_test.hpp>
+ 
+diff --git a/tests/capped_test.cpp b/tests/capped_test.cpp
+index ee3ae4f..eacd774 100644
+--- a/tests/capped_test.cpp
++++ b/tests/capped_test.cpp
+@@ -19,9 +19,6 @@
+ #include <algorithm>
+ #include <deque>
+ 
+-#include <boost/bind/bind.hpp>
+-using namespace boost::placeholders;
+-
+ #define BOOST_TEST_NO_MAIN
+ #include <boost/test/included/unit_test.hpp>
+ #include <boost/test/results_reporter.hpp>
+diff --git a/tests/crypto_test.cpp b/tests/crypto_test.cpp
+index c87d0c9..b725bb5 100644
+--- a/tests/crypto_test.cpp
++++ b/tests/crypto_test.cpp
+@@ -18,9 +18,6 @@
+ #include "test_base.hpp"
+ #include "../library/crypto/sha512.h"
+ 
+-#include <boost/bind/bind.hpp>
+-using namespace boost::placeholders;
+-
+ #define BOOST_TEST_NO_MAIN
+ #include <boost/test/included/unit_test.hpp>
+ 
+diff --git a/tests/locks_test.cpp b/tests/locks_test.cpp
+index 1e84008..4a52c78 100644
+--- a/tests/locks_test.cpp
++++ b/tests/locks_test.cpp
+@@ -17,9 +17,6 @@
+ #include "../library/elliptics.h"
+ #include <algorithm>
+ 
+-#include <boost/bind/bind.hpp>
+-using namespace boost::placeholders;
+-
+ #define BOOST_TEST_NO_MAIN
+ #include <boost/test/included/unit_test.hpp>
+ 
+diff --git a/tests/reconnect_test.cpp b/tests/reconnect_test.cpp
+index 9037518..644f64d 100644
+--- a/tests/reconnect_test.cpp
++++ b/tests/reconnect_test.cpp
+@@ -17,9 +17,6 @@
+ #include "test_session.hpp"
+ #include "../library/elliptics.h"
+ 
+-#include <boost/bind/bind.hpp>
+-using namespace boost::placeholders;
+-
+ #define BOOST_TEST_NO_MAIN
+ #include <boost/test/included/unit_test.hpp>
+ 
+diff --git a/tests/server_send.cpp b/tests/server_send.cpp
+index d4befb5..680905e 100644
+--- a/tests/server_send.cpp
++++ b/tests/server_send.cpp
+@@ -17,9 +17,6 @@
+ #include "../library/elliptics.h"
+ #include <algorithm>
+ 
+-#include <boost/bind/bind.hpp>
+-using namespace boost::placeholders;
+-
+ #define BOOST_TEST_NO_MAIN
+ #include <boost/test/included/unit_test.hpp>
+ 
+diff --git a/tests/srw_test.cpp b/tests/srw_test.cpp
+index 587d28e..8c453d8 100644
+--- a/tests/srw_test.cpp
++++ b/tests/srw_test.cpp
+@@ -17,15 +17,11 @@
+ #include "test_base.hpp"
+ #include <algorithm>
+ 
+-#include <boost/program_options.hpp>
+-
+-#include <boost/bind/bind.hpp>
+-using namespace boost::placeholders;
+-
+-using namespace boost::unit_test;
+ #define BOOST_TEST_NO_MAIN
+ #include <boost/test/included/unit_test.hpp>
+ 
++#include <boost/program_options.hpp>
++
+ using namespace ioremap::elliptics;
+ 
+ namespace tests {
+diff --git a/tests/stats_test.cpp b/tests/stats_test.cpp
+index 337e81c..42e3052 100644
+--- a/tests/stats_test.cpp
++++ b/tests/stats_test.cpp
+@@ -17,9 +17,6 @@
+ #include "../monitor/event_stats.hpp"
+ #include "../monitor/monitor.hpp"
+ 
+-#include <boost/bind/bind.hpp>
+-using namespace boost::placeholders;
+-
+ #define BOOST_TEST_NO_MAIN
+ #include <boost/test/included/unit_test.hpp>
+ 
+diff --git a/tests/test.cpp b/tests/test.cpp
+index 276b86c..ccfd1d8 100644
+--- a/tests/test.cpp
++++ b/tests/test.cpp
+@@ -17,8 +17,6 @@
+ #include "test_base.hpp"
+ #include <algorithm>
+ 
+-#include <boost/bind/bind.hpp>
+-using namespace boost::placeholders;
+ #define BOOST_TEST_NO_MAIN
+ #include <boost/test/included/unit_test.hpp>
+ 
+diff --git a/tests/test_base.hpp b/tests/test_base.hpp
+index 73d2a07..16ca5e0 100644
+--- a/tests/test_base.hpp
++++ b/tests/test_base.hpp
+@@ -8,6 +8,13 @@
+ # include <boost/bind/placeholders.hpp>
+ #endif
+ 
++#if BOOST_VERSION > 105800
++#include <boost/bind/bind.hpp>
++#include <boost/bind/placeholders.hpp>
++using namespace boost::placeholders;
++#endif
++
++
+ namespace tests {
+ 
+ using namespace ioremap::elliptics;
+
+From c029968be5c2432d47b02e7aeae51ad31e2c108d Mon Sep 17 00:00:00 2001
+From: Evgeniy Polyakov <zbr@ioremap.net>
+Date: Sun, 18 Dec 2016 21:30:29 +0300
+Subject: [PATCH 3/3] test: only include placeholders for newer boost
+
+---
+ tests/weights_test.cpp | 3 ---
+ 1 file changed, 3 deletions(-)
+
+diff --git a/tests/weights_test.cpp b/tests/weights_test.cpp
+index 0443a7e..2d8b7e7 100644
+--- a/tests/weights_test.cpp
++++ b/tests/weights_test.cpp
+@@ -17,9 +17,6 @@
+ #include "../library/elliptics.h"
+ #include <algorithm>
+ 
+-#include <boost/bind/bind.hpp>
+-using namespace boost::placeholders;
+-
+ #define BOOST_TEST_NO_MAIN
+ #include <boost/test/included/unit_test.hpp>
+ 
