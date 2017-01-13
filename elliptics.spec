@@ -13,7 +13,11 @@ Patch2:		elliptics-2.26.11.0-fix-man-comments.patch
 BuildRequires:	blackhole-devel = 0.2.4
 BuildRequires:	boost-devel
 BuildRequires:	cmake
+%if 0%{?rhel} < 8
+BuildRequires:	msgpack-devel
+%else
 BuildRequires:	compat-msgpack-devel
+%endif
 BuildRequires:	eblob-devel >= 0.23.11
 BuildRequires:	handystats-devel >= 1.10.2
 BuildRequires:	libev-devel
