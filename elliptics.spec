@@ -119,7 +119,6 @@ export DESTDIR="%{buildroot}"
 %{_libdir}/lib%{name}_client.so
 %{_libdir}/lib%{name}_cpp.so
 %{_datadir}/%{name}/cmake/*
-%{python_sitelib}/%{name}/core.so
 
 
 %changelog
