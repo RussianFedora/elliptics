@@ -8,6 +8,7 @@ URL:		http://www.ioremap.net/projects/elliptics
 Source0:	http://repo.reverbrain.com/sources/%{name}/%{name}-%{version}.tar.bz2
 Patch0:		elliptics-2.26.11.0-gcc6.patch
 Patch1:		elliptics-2.26.11.0-interpreter-fix.patch
+Patch2:		elliptics-2.26.11.0-fix-man-comments.patch
 
 BuildRequires:	blackhole-devel = 0.2.4
 BuildRequires:	boost-devel
@@ -61,8 +62,10 @@ Elliptics client library (C++/Python bindings), devel files
 %autosetup -p 1
 
 %build
+# this export is needed for python installation
+export DESTDIR="%{buildroot}"
 %{cmake} -DWITH_COCAINE=off .
-make
+%{make_build}
 
 
 %install
