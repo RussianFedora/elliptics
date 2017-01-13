@@ -5,7 +5,7 @@ Release:	1%{?dist}
 
 License:	GPLv2+
 URL:		http://www.ioremap.net/projects/elliptics
-Source0:	https://github.com/reverbrain/elliptics/archive/v%{version}.tar.gz#/%{name}-%{version}.tar.gz
+Source0:	http://repo.reverbrain.com/sources/%{name}/%{name}-%{version}.tar.bz2
 Patch0:		elliptics-2.26.11.0-gcc6.patch
 Patch1:		elliptics-2.26.11.0-interpreter-fix.patch
 
