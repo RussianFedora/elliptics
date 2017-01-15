@@ -1,14 +1,11 @@
 Summary:	Distributed hash table storage
 Name:		elliptics
-Version:	2.26.11.0
+Version:	2.26.11.1
 Release:	1%{?dist}
 
 License:	GPLv2+
 URL:		http://www.ioremap.net/projects/elliptics
 Source0:	http://repo.reverbrain.com/sources/%{name}/%{name}-%{version}.tar.bz2
-Patch0:		elliptics-2.26.11.0-gcc6.patch
-Patch1:		elliptics-2.26.11.0-interpreter-fix.patch
-Patch2:		elliptics-2.26.11.0-fix-man-comments.patch
 
 BuildRequires:	blackhole-devel = 0.2.4
 BuildRequires:	boost-devel
@@ -122,5 +119,9 @@ export DESTDIR="%{buildroot}"
 
 
 %changelog
+* Sun Jan 15 2017 Arkady L. Shane <ashejn@russianfedora.pro> - 2.26.11.1-1
+- update to 2.26.11.1
+- drop patches
+
 * Thu Jan 12 2017 Arkady L. Shane <ashejn@russianfedora.pro> - 2.26.11.0-1
 - initial build
