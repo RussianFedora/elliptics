@@ -19,8 +19,6 @@ BuildRequires:	python-devel
 BuildRequires:	python-msgpack
 BuildRequires:	python-virtualenv
 
-ExclusiveArch:	x86_64
-
 %description
 Elliptics network is a fault tolerant distributed hash table
 object storage.
@@ -119,6 +117,9 @@ export DESTDIR="%{buildroot}"
 
 
 %changelog
+* Sat Jan 28 2017 Arkady L. Shane <ashejn@russianfedora.pro> - 2.26.11.1-2
+- drop ExclusiveArch tag
+
 * Sun Jan 15 2017 Arkady L. Shane <ashejn@russianfedora.pro> - 2.26.11.1-1
 - update to 2.26.11.1
 - drop patches
