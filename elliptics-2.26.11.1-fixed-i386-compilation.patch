@@ -1,0 +1,221 @@
+From 39bdc850919fdf257d55bc095d0f87c7ac393dd6 Mon Sep 17 00:00:00 2001
+From: Evgeniy Polyakov <zbr@ioremap.net>
+Date: Wed, 1 Feb 2017 02:52:23 +0300
+Subject: [PATCH 1/2] pool: fixed i386 compilation: invalid casting size
+
+---
+ library/pool.c | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/library/pool.c b/library/pool.c
+index d8b2ec7..e199c60 100644
+--- a/library/pool.c
++++ b/library/pool.c
+@@ -366,7 +366,7 @@ void dnet_schedule_io(struct dnet_node *n, struct dnet_io_req *r)
+ 
+ 	pthread_mutex_unlock(&place->lock);
+ 
+-	FORMATTED(HANDY_TIMER_START, ("pool.%s.queue.wait_time", thread_stat_id), (uint64_t)&r->req_entry);
++	FORMATTED(HANDY_TIMER_START, ("pool.%s.queue.wait_time", thread_stat_id), (unsigned long)&r->req_entry);
+ 	FORMATTED(HANDY_COUNTER_INCREMENT, ("pool.%s.queue.size", thread_stat_id), 1);
+ 	HANDY_COUNTER_INCREMENT("io.input.queue.size", 1);
+ }
+@@ -1041,7 +1041,7 @@ void *dnet_io_process(void *data_)
+ 		HANDY_COUNTER_DECREMENT("io.input.queue.size", 1);
+ 
+ 		FORMATTED(HANDY_COUNTER_DECREMENT, ("pool.%s.queue.size", thread_stat_id), 1);
+-		FORMATTED(HANDY_TIMER_STOP, ("pool.%s.queue.wait_time", thread_stat_id), (uint64_t)r);
++		FORMATTED(HANDY_TIMER_STOP, ("pool.%s.queue.wait_time", thread_stat_id), (unsigned long)r);
+ 
+ 		FORMATTED(HANDY_COUNTER_INCREMENT, ("pool.%s.active_threads", thread_stat_id), 1);
+ 
+
+From e2fae5f17e9eea214d1ce0fbc3d7d50744693dd0 Mon Sep 17 00:00:00 2001
+From: Evgeniy Polyakov <zbr@ioremap.net>
+Date: Thu, 2 Feb 2017 17:37:38 +0300
+Subject: [PATCH 2/2] More i386 fixes
+
+---
+ monitor/histogram.cpp        |  4 ++--
+ monitor/io_stat_provider.cpp |  2 +-
+ monitor/monitor.cpp          |  2 +-
+ monitor/procfs_provider.cpp  | 23 ++++++++++++-----------
+ monitor/server.cpp           | 13 +++++++++----
+ monitor/statistics.cpp       |  4 ++--
+ tests/server_send.cpp        |  2 +-
+ 7 files changed, 28 insertions(+), 22 deletions(-)
+
+diff --git a/monitor/histogram.cpp b/monitor/histogram.cpp
+index 9447ebd..5a7f164 100644
+--- a/monitor/histogram.cpp
++++ b/monitor/histogram.cpp
+@@ -95,8 +95,8 @@ rapidjson::Value& histogram::print_data(rapidjson::Value &stat_value,
+ 
+ 	stat_value.AddMember("time",
+ 	                     rapidjson::Value(rapidjson::kObjectType)
+-	                         .AddMember("tv_sec", data.timestamp.tv_sec, allocator)
+-	                         .AddMember("tv_usec", data.timestamp.tv_usec, allocator),
++	                         .AddMember("tv_sec", (uint64_t)data.timestamp.tv_sec, allocator)
++	                         .AddMember("tv_usec", (uint64_t)data.timestamp.tv_usec, allocator),
+ 	                     allocator);
+ 
+ 	return stat_value;
+diff --git a/monitor/io_stat_provider.cpp b/monitor/io_stat_provider.cpp
+index f8ab445..73d4375 100644
+--- a/monitor/io_stat_provider.cpp
++++ b/monitor/io_stat_provider.cpp
+@@ -37,7 +37,7 @@ void dump_states_stats(rapidjson::Value &stat, struct dnet_node *n, rapidjson::D
+ 	pthread_mutex_lock(&n->state_lock);
+ 	list_for_each_entry(st, &n->empty_state_list, node_entry) {
+ 		rapidjson::Value state_value(rapidjson::kObjectType);
+-		state_value.AddMember("send_queue_size", atomic_read(&st->send_queue_size), allocator)
++		state_value.AddMember("send_queue_size", (uint64_t)atomic_read(&st->send_queue_size), allocator)
+ 		           .AddMember("la", st->la, allocator)
+ 		           .AddMember("free", (uint64_t)st->free, allocator)
+ 		           .AddMember("stall", st->stall, allocator)
+diff --git a/monitor/monitor.cpp b/monitor/monitor.cpp
+index 859f4b2..0a46620 100644
+--- a/monitor/monitor.cpp
++++ b/monitor/monitor.cpp
+@@ -242,7 +242,7 @@ int dnet_monitor_process_cmd(struct dnet_net_state *orig, struct dnet_cmd *cmd _
+ 	dnet_convert_monitor_stat_request(req);
+ 	static const std::string disabled_reply = ioremap::monitor::compress("{\"monitor_status\":\"disabled\"}");
+ 
+-	dnet_log(orig->n, DNET_LOG_DEBUG, "monitor: %s: %s: process MONITOR_STAT, categories: %lx, monitor: %p",
++	dnet_log(orig->n, DNET_LOG_DEBUG, "monitor: %s: %s: process MONITOR_STAT, categories: %" PRIx64 ", monitor: %p",
+ 		dnet_state_dump_addr(orig), dnet_dump_id(&cmd->id), req->categories, n->monitor);
+ 
+ 	auto real_monitor = ioremap::monitor::get_monitor(n);
+diff --git a/monitor/procfs_provider.cpp b/monitor/procfs_provider.cpp
+index 62b4edc..37c004b 100644
+--- a/monitor/procfs_provider.cpp
++++ b/monitor/procfs_provider.cpp
+@@ -64,7 +64,7 @@ static int fill_proc_io_stat(dnet_logger *l, struct proc_io_stat &st) {
+ }
+ 
+ struct proc_stat {
+-	long threads_num;
++	int threads_num;
+ 	long rss;
+ 	unsigned long vsize;
+ 	unsigned long rsslim;
+@@ -88,7 +88,7 @@ static int fill_proc_stat(dnet_logger *l, struct proc_stat &st) {
+ 		goto err_out_exit;
+ 	}
+ 
+-	static const char f_str[] = "%*d %*s %*c %*d %*d %*d %*d %*d %*u %*u %*u %*u %*u %*u %*u %*d %*d %*d %*d %ld %*d %*u %lu %ld %lu";
++	static const char f_str[] = "%*d %*s %*c %*d %*d %*d %*d %*d %*u %*u %*u %*u %*u %*u %*u %*d %*d %*d %*d %d %*d %*u %lu %ld %lu";
+ 
+ 	err = fscanf(f, f_str, &st.threads_num, &st.vsize, &st.rss, &st.rsslim);
+ 	fclose(f);
+@@ -145,7 +145,8 @@ static int fill_proc_net_stat(dnet_logger *l, std::map<std::string, net_interfac
+ 	}
+ 
+ 	while (1) {
+-		err = fscanf(f, "%255s %lu %lu %lu %*u %*u %*u %*u %*u %lu %lu %lu %*u %*u %*u %*u %*u", buf,
++		err = fscanf(f, "%255s %" PRIu64 " %" PRIu64 " %" PRIu64 " ""%*u %*u %*u %*u %*u "
++				"%" PRIu64 " %" PRIu64 " %" PRIu64 " %*u %*u %*u %*u %*u", buf,
+ 			     &net_stat.rx.bytes, &net_stat.rx.packets, &net_stat.rx.errors,
+ 			     &net_stat.tx.bytes, &net_stat.tx.packets, &net_stat.tx.errors);
+ 		if (err < 0) {
+@@ -241,14 +242,14 @@ static void fill_stat(dnet_node *node,
+ 	if (!err) {
+ 		stat_stat.AddMember("string_error", "", allocator);
+ 		stat_stat.AddMember("threads_num", st.threads_num, allocator);
+-		stat_stat.AddMember("rss", st.rss, allocator);
+-		stat_stat.AddMember("vsize", st.vsize, allocator);
+-		stat_stat.AddMember("rsslim", st.rsslim, allocator);
+-		stat_stat.AddMember("msize", st.msize, allocator);
+-		stat_stat.AddMember("mresident", st.mresident, allocator);
+-		stat_stat.AddMember("mshare", st.mshare, allocator);
+-		stat_stat.AddMember("mcode", st.mcode, allocator);
+-		stat_stat.AddMember("mdata", st.mdata, allocator);
++		stat_stat.AddMember("rss", (int64_t)st.rss, allocator);
++		stat_stat.AddMember("vsize", (uint64_t)st.vsize, allocator);
++		stat_stat.AddMember("rsslim", (uint64_t)st.rsslim, allocator);
++		stat_stat.AddMember("msize", (uint64_t)st.msize, allocator);
++		stat_stat.AddMember("mresident", (uint64_t)st.mresident, allocator);
++		stat_stat.AddMember("mshare", (uint64_t)st.mshare, allocator);
++		stat_stat.AddMember("mcode", (uint64_t)st.mcode, allocator);
++		stat_stat.AddMember("mdata", (uint64_t)st.mdata, allocator);
+ 	} else
+ 		stat_stat.AddMember("string_error", strerror(-err), allocator);
+ 
+diff --git a/monitor/server.cpp b/monitor/server.cpp
+index de21deb..8cfbbdc 100644
+--- a/monitor/server.cpp
++++ b/monitor/server.cpp
+@@ -35,7 +35,8 @@ class handler: public std::enable_shared_from_this<handler> {
+ 
+ 	void start() {
+ 		m_remote = m_socket.remote_endpoint().address().to_string();
+-		dnet_log(m_monitor.node(), DNET_LOG_INFO, "monitor: server: accepted client: %s:%d", m_remote.c_str(), m_socket.remote_endpoint().port());
++		dnet_log(m_monitor.node(), DNET_LOG_INFO, "monitor: server: accepted client: %s:%d",
++				m_remote.c_str(), m_socket.remote_endpoint().port());
+ 		async_read();
+ 	}
+ 
+@@ -126,7 +127,9 @@ void handler::handle_read(const boost::system::error_code &err, size_t size) {
+ 	std::string content = "";
+ 
+ 	if (req > 0) {
+-		dnet_log(m_monitor.node(), DNET_LOG_DEBUG, "monitor: server: got statistics request for categories: %lx from: %s:%d", req, m_remote.c_str(), m_socket.remote_endpoint().port());
++		dnet_log(m_monitor.node(), DNET_LOG_DEBUG,
++				"monitor: server: got statistics request for categories: %" PRIx64 " from: %s:%d",
++				req, m_remote.c_str(), m_socket.remote_endpoint().port());
+ 		content = m_monitor.get_statistics().report(req);
+ 	}
+ 
+@@ -137,13 +140,15 @@ void handler::handle_read(const boost::system::error_code &err, size_t size) {
+ void handler::async_write(std::string data) {
+ 	auto self(shared_from_this());
+ 	m_report = std::move(data);
+-	dnet_log(m_monitor.node(), DNET_LOG_DEBUG, "monitor: server: send requested statistics: started: %s:%d, size: %lu", m_remote.c_str(), m_socket.remote_endpoint().port(), m_report.size());
++	dnet_log(m_monitor.node(), DNET_LOG_DEBUG, "monitor: server: send requested statistics: started: %s:%d, size: %zd",
++			m_remote.c_str(), m_socket.remote_endpoint().port(), m_report.size());
+ 	boost::asio::async_write(m_socket, boost::asio::buffer(m_report),
+ 	                         std::bind(&handler::handle_write, self));
+ }
+ 
+ void handler::handle_write() {
+-	dnet_log(m_monitor.node(), DNET_LOG_DEBUG, "monitor: server: send requested statistics: finished: %s:%d", m_remote.c_str(), m_socket.remote_endpoint().port());
++	dnet_log(m_monitor.node(), DNET_LOG_DEBUG, "monitor: server: send requested statistics: finished: %s:%d",
++			m_remote.c_str(), m_socket.remote_endpoint().port());
+ 	close();
+ }
+ 
+diff --git a/monitor/statistics.cpp b/monitor/statistics.cpp
+index 41a506b..d47b4d6 100644
+--- a/monitor/statistics.cpp
++++ b/monitor/statistics.cpp
+@@ -215,7 +215,7 @@ inline std::string convert_report(const rapidjson::Document &report)
+ std::string statistics::report(uint64_t categories)
+ {
+ 	rapidjson::Document report;
+-	dnet_log(m_monitor.node(), DNET_LOG_INFO, "monitor: collecting statistics for categories: %lx", categories);
++	dnet_log(m_monitor.node(), DNET_LOG_INFO, "monitor: collecting statistics for categories: %" PRIx64, categories);
+ 	report.SetObject();
+ 	auto &allocator = report.GetAllocator();
+ 
+@@ -265,7 +265,7 @@ std::string statistics::report(uint64_t categories)
+ 	}
+ 
+ 	dnet_log(m_monitor.node(), DNET_LOG_DEBUG,
+-			"monitor: finished generating json statistics for categories: %lx", categories);
++			"monitor: finished generating json statistics for categories: %" PRIx64, categories);
+ 	return convert_report(report);
+ }
+ 
+diff --git a/tests/server_send.cpp b/tests/server_send.cpp
+index 680905e..a2878bb 100644
+--- a/tests/server_send.cpp
++++ b/tests/server_send.cpp
+@@ -289,7 +289,7 @@ static void ssend_test_server_send(session &s, int num, const std::string &id_pr
+ static void ssend_test_set_delay(session &s, const std::vector<int> &groups, uint64_t delay) {
+ 	struct backend {
+ 		dnet_addr addr;
+-		int backend_id;
++		uint32_t backend_id;
+ 
+ 		bool operator<(const backend &other) const {
+ 			if (auto cmp = dnet_addr_cmp(&addr, &other.addr))
