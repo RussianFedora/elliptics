@@ -1,7 +1,7 @@
 From 39bdc850919fdf257d55bc095d0f87c7ac393dd6 Mon Sep 17 00:00:00 2001
 From: Evgeniy Polyakov <zbr@ioremap.net>
 Date: Wed, 1 Feb 2017 02:52:23 +0300
-Subject: [PATCH 1/2] pool: fixed i386 compilation: invalid casting size
+Subject: [PATCH 1/3] pool: fixed i386 compilation: invalid casting size
 
 ---
  library/pool.c | 4 ++--
@@ -33,7 +33,7 @@ index d8b2ec7..e199c60 100644
 From e2fae5f17e9eea214d1ce0fbc3d7d50744693dd0 Mon Sep 17 00:00:00 2001
 From: Evgeniy Polyakov <zbr@ioremap.net>
 Date: Thu, 2 Feb 2017 17:37:38 +0300
-Subject: [PATCH 2/2] More i386 fixes
+Subject: [PATCH 2/3] More i386 fixes
 
 ---
  monitor/histogram.cpp        |  4 ++--
@@ -219,3 +219,93 @@ index 680905e..a2878bb 100644
  
  		bool operator<(const backend &other) const {
  			if (auto cmp = dnet_addr_cmp(&addr, &other.addr))
+
+From 6f495c86d83cb5375b5c97e5aeffad508966fefd Mon Sep 17 00:00:00 2001
+From: Evgeniy Polyakov <zbr@ioremap.net>
+Date: Thu, 9 Feb 2017 14:47:27 +0300
+Subject: [PATCH 3/3] i386: older compilers do not support PRIx64 format, use
+ unsigned long long casting
+
+---
+ monitor/monitor.cpp    | 11 +++++++----
+ monitor/server.cpp     |  4 ++--
+ monitor/statistics.cpp |  7 ++++---
+ 3 files changed, 13 insertions(+), 9 deletions(-)
+
+diff --git a/monitor/monitor.cpp b/monitor/monitor.cpp
+index 0a46620..0e6762a 100644
+--- a/monitor/monitor.cpp
++++ b/monitor/monitor.cpp
+@@ -75,9 +75,12 @@ monitor::monitor(struct dnet_node *n, struct dnet_config *cfg)
+ 	if (cfg->handystats_config != nullptr) {
+ 		//TODO: add parse/configuration errors logging when handystats will allow to get them
+ 		if (HANDY_CONFIG_FILE(cfg->handystats_config)) {
+-			BH_LOG(*cfg->log, DNET_LOG_INFO, "monitor: initializing stats subsystem, config file '%s'", cfg->handystats_config);
++			BH_LOG(*cfg->log, DNET_LOG_INFO, "monitor: initializing stats subsystem, config file '%s'",
++					cfg->handystats_config);
+ 		} else {
+-			BH_LOG(*cfg->log, DNET_LOG_ERROR, "monitor: initializing stats subsystem, error parsing config file '%s', using defaults", cfg->handystats_config);
++			BH_LOG(*cfg->log, DNET_LOG_ERROR, "monitor: initializing stats subsystem, "
++					"error parsing config file '%s', using defaults",
++					cfg->handystats_config);
+ 		}
+ 	} else {
+ 		BH_LOG(*cfg->log, DNET_LOG_INFO, "monitor: initializing stats subsystem, no config file specified, using defaults");
+@@ -242,8 +245,8 @@ int dnet_monitor_process_cmd(struct dnet_net_state *orig, struct dnet_cmd *cmd _
+ 	dnet_convert_monitor_stat_request(req);
+ 	static const std::string disabled_reply = ioremap::monitor::compress("{\"monitor_status\":\"disabled\"}");
+ 
+-	dnet_log(orig->n, DNET_LOG_DEBUG, "monitor: %s: %s: process MONITOR_STAT, categories: %" PRIx64 ", monitor: %p",
+-		dnet_state_dump_addr(orig), dnet_dump_id(&cmd->id), req->categories, n->monitor);
++	dnet_log(orig->n, DNET_LOG_DEBUG, "monitor: %s: %s: process MONITOR_STAT, categories: %llx, monitor: %p",
++		dnet_state_dump_addr(orig), dnet_dump_id(&cmd->id), (unsigned long long)req->categories, n->monitor);
+ 
+ 	auto real_monitor = ioremap::monitor::get_monitor(n);
+ 	if (!real_monitor)
+diff --git a/monitor/server.cpp b/monitor/server.cpp
+index 8cfbbdc..040b8c9 100644
+--- a/monitor/server.cpp
++++ b/monitor/server.cpp
+@@ -128,8 +128,8 @@ void handler::handle_read(const boost::system::error_code &err, size_t size) {
+ 
+ 	if (req > 0) {
+ 		dnet_log(m_monitor.node(), DNET_LOG_DEBUG,
+-				"monitor: server: got statistics request for categories: %" PRIx64 " from: %s:%d",
+-				req, m_remote.c_str(), m_socket.remote_endpoint().port());
++				"monitor: server: got statistics request for categories: %llx from: %s:%d",
++				(unsigned long long)req, m_remote.c_str(), m_socket.remote_endpoint().port());
+ 		content = m_monitor.get_statistics().report(req);
+ 	}
+ 
+diff --git a/monitor/statistics.cpp b/monitor/statistics.cpp
+index d47b4d6..3a0985e 100644
+--- a/monitor/statistics.cpp
++++ b/monitor/statistics.cpp
+@@ -188,7 +188,8 @@ statistics::statistics(monitor& mon, struct dnet_config *cfg) : m_monitor(mon)
+ 	(void) cfg;
+ 	const auto monitor_cfg = get_monitor_config(mon.node());
+ 	if (monitor_cfg && monitor_cfg->has_top) {
+-		m_top_stats = std::make_shared<top_stats>(monitor_cfg->top_length, monitor_cfg->events_size, monitor_cfg->period_in_seconds);
++		m_top_stats = std::make_shared<top_stats>(monitor_cfg->top_length,
++				monitor_cfg->events_size, monitor_cfg->period_in_seconds);
+ 	}
+ }
+ 
+@@ -215,7 +216,7 @@ inline std::string convert_report(const rapidjson::Document &report)
+ std::string statistics::report(uint64_t categories)
+ {
+ 	rapidjson::Document report;
+-	dnet_log(m_monitor.node(), DNET_LOG_INFO, "monitor: collecting statistics for categories: %" PRIx64, categories);
++	dnet_log(m_monitor.node(), DNET_LOG_INFO, "monitor: collecting statistics for categories: %llx", (unsigned long long)categories);
+ 	report.SetObject();
+ 	auto &allocator = report.GetAllocator();
+ 
+@@ -265,7 +266,7 @@ std::string statistics::report(uint64_t categories)
+ 	}
+ 
+ 	dnet_log(m_monitor.node(), DNET_LOG_DEBUG,
+-			"monitor: finished generating json statistics for categories: %" PRIx64, categories);
++			"monitor: finished generating json statistics for categories: %llx", (unsigned long long)categories);
+ 	return convert_report(report);
+ }
+ 
