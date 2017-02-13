@@ -1,7 +1,7 @@
 Summary:	Distributed hash table storage
 Name:		elliptics
 Version:	2.26.11.1
-Release:	2%{?dist}
+Release:	3%{?dist}
 
 License:	GPLv2+
 URL:		http://www.ioremap.net/projects/elliptics
@@ -118,6 +118,9 @@ export DESTDIR="%{buildroot}"
 
 
 %changelog
+* Mon Feb 13 2017 Arkady L. Shane <ashejn@russianfedora.pro> - 2.26.11.1-3
+- rebuilt against new boost
+
 * Thu Feb  2 2017 Arkady L. Shane <ashejn@russianfedora.pro> - 2.26.11.1-2
 - drop ExclusiveArch tag
 - fix build on i386
